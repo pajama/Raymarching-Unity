@@ -8,10 +8,11 @@ Shader "Unlit/VolumetricSphere"
 {
     Properties
     {
-    _Radius ("Radius", float) = 1
-    _Centre ("Centre", vector) = (0,0,0)
-    _Steps ("Steps", int) = 64
-    _MinDistance ("Min Distance", float) = .01
+        _Color ("Color", Color) = (1,1,1,1)
+        _Radius ("Radius", float) = 1
+        _Centre ("Centre", vector) = (0,0,0)
+        _Steps ("Steps", int) = 64
+        _MinDistance ("Min Distance", float) = .01
     }
     SubShader
     {
@@ -28,14 +29,25 @@ Shader "Unlit/VolumetricSphere"
             #pragma vertex vert
             #pragma fragment frag
             #include "UnityCG.cginc"
+            #include "Lighting.cginc"
 
             sampler2D _MainTex;
             float3 _Centre = 0;
             float _Radius = 2;
             int _Steps;
             float _MinDistance;
+            float4 _Color;
 
+            fixed4 simpleLambert (fixed3 normal) {
+                fixed3 lightDir = _WorldSpaceLightPos0.xyz;	// Light direction
+                fixed3 lightCol = _LightColor0.rgb;		// Light color
 
+                fixed NdotL = max(dot(normal, lightDir),0);
+                fixed4 c;
+                c.rgb = _Color * lightCol * NdotL;
+                c.a = 1;
+                return c;
+            }
 
             struct appdata
             {
@@ -56,23 +68,43 @@ Shader "Unlit/VolumetricSphere"
                 return o;
             }
 
-            float sphereDistance (float3 p)
+            float map (float3 p)
             {
                 return distance(p,_Centre) - _Radius;
+            }
+
+            float3 normal (float3 p)
+            {
+                const float eps = 0.01;
+                return normalize
+                (
+                    float3( 
+                        map(p + float3(eps, 0, 0) ) - map(p - float3(eps, 0, 0)),
+                        map(p + float3(0, eps, 0) ) - map(p - float3(0, eps, 0)),
+                        map(p + float3(0, 0, eps) ) - map(p - float3(0, 0, eps))
+                    )
+                );
+            }
+
+            fixed4 renderSurface(float3 p)
+            {
+                float3 n = normal(p);
+                return simpleLambert(n);
             }
 
             fixed4 rayMarch(float3 position, float3 direction)
             {
                 for(int i=0; i<_Steps; i++){
-                    float distance = sphereDistance(position);
+                    float distance = map(position);
                     if(distance < _MinDistance){
-                        float depth = i /(float)_Steps;
-                        return fixed4(depth,depth,depth,1.);
+                        return renderSurface(position);
                     }
                     position += distance * direction;
                 }
-                return 0;
+                return 1;
             }
+
+
 
             fixed4 frag (v2f i) : SV_Target
             {
