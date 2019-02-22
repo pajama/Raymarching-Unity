@@ -1,14 +1,10 @@
-﻿// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
-
-// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
-// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
-
-
-Shader "Unlit/VolumetricSphere"
+﻿Shader "Raymarch/VolumetricSphereBlinnPhong"
 {
     Properties
     {
         _Color ("Color", Color) = (1,1,1,1)
+        _SpecularPower("Specular Power", float) = 1
+        _Gloss("Gloss", float) = 1
         _Radius ("Radius", float) = 1
         _Centre ("Centre", vector) = (0,0,0)
         _Steps ("Steps", int) = 64
@@ -37,17 +33,24 @@ Shader "Unlit/VolumetricSphere"
             int _Steps;
             float _MinDistance;
             float4 _Color;
+            float3 _ViewDirection;
+            float _SpecularPower;
+            float _Gloss;
 
-            fixed4 simpleLambert (fixed3 normal) {
+            fixed4 blinnPhong(fixed3 normal){
                 fixed3 lightDir = _WorldSpaceLightPos0.xyz;	// Light direction
                 fixed3 lightCol = _LightColor0.rgb;		// Light color
 
+                //specular
+                fixed3 h = (lightDir - _ViewDirection) / 2.;
+                fixed s = pow( dot(normal, h), _SpecularPower) * _Gloss;
                 fixed NdotL = max(dot(normal, lightDir),0);
                 fixed4 c;
-                c.rgb = _Color * lightCol * NdotL;
+                c.rgb = _Color * lightCol * NdotL + s;
                 c.a = 1;
                 return c;
             }
+
 
             struct appdata
             {
@@ -89,7 +92,7 @@ Shader "Unlit/VolumetricSphere"
             fixed4 renderSurface(float3 p)
             {
                 float3 n = normal(p);
-                return simpleLambert(n);
+                return blinnPhong(n);
             }
 
             fixed4 rayMarch(float3 position, float3 direction)
@@ -109,9 +112,9 @@ Shader "Unlit/VolumetricSphere"
             fixed4 frag (v2f i) : SV_Target
             {
                 float3 worldPosition = i.wPos;
-                float3 viewDirection = normalize(i.wPos - _WorldSpaceCameraPos);
+                _ViewDirection = normalize(i.wPos - _WorldSpaceCameraPos);
 
-                fixed4 pixel = rayMarch(worldPosition, viewDirection);
+                fixed4 pixel = rayMarch(worldPosition, _ViewDirection);
                 return pixel;
     
             }

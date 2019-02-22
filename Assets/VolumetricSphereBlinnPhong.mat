@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: VolumetricSphere
-  m_Shader: {fileID: 4800000, guid: 35adc95273580a9499c832949f1fa320, type: 3}
+  m_Name: VolumetricSphereBlinnPhong
+  m_Shader: {fileID: 4800000, guid: fc2aa76d47e3f7f408d00833892fbaf1, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
@@ -61,6 +61,7 @@ Material:
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
+    - _Gloss: 1
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
@@ -72,11 +73,12 @@ Material:
     - _Radius: 2
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
+    - _SpecularPower: 20
     - _SrcBlend: 1
     - _Steps: 64
     - _UVSec: 0
     - _ZWrite: 1
     m_Colors:
-    - _Centre: {r: 0, g: 0, b: 0, a: 1}
+    - _Centre: {r: -5, g: 0, b: 0, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
