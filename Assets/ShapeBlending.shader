@@ -1,10 +1,13 @@
-﻿Shader "Raymarch/VolumetricSphereLambert"
+﻿// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
+
+// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
+
+Shader "Raymarch/VolumetricSphereLambert"
 {
     Properties
     {
         _Color ("Color", Color) = (1,1,1,1)
         _Radius ("Radius", float) = 1
-        _Centre ("Centre", vector) = (0,0,0)
         _Steps ("Steps", int) = 64
         _MinDistance ("Min Distance", float) = .01
     }
@@ -31,6 +34,7 @@
             int _Steps;
             float _MinDistance;
             float4 _Color;
+            float3 _ObjectPosition;
 
             fixed4 simpleLambert (fixed3 normal) {
                 fixed3 lightDir = _WorldSpaceLightPos0.xyz;	// Light direction
@@ -52,11 +56,13 @@
             {
                 float4 vertex : SV_POSITION; //clip space
                 float3 wPos : TEXCOORD1; //world space
+                float3 objectPos : CUSTOM;
             };
 
             v2f vert (appdata v)
             {
                 v2f o;
+                o.objectPos =  mul ( unity_ObjectToWorld, float4(0,0,0,1) ).xyz;
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.wPos = mul(unity_ObjectToWorld, v.vertex).xyz;
                 return o;
@@ -95,14 +101,24 @@
                 return a * d1 + (1 - a) * d2;
             }
 
-            float map (float3 p)
+            float map (float3 p, float3 center)
             {
                 return sdf_blend(
-                    sdf_box(p, _Centre, _Radius),
-                    sdf_sphere(p, _Centre, _Radius),
+                    sdf_box(p, center, _Radius),
+                    sdf_sphere(p, center, _Radius),
                     (_SinTime[3] + 1) / 2
                 );              
             }
+            
+            float map (float3 p)
+            {
+                return sdf_blend(
+                    sdf_box(p, 0, _Radius),
+                    sdf_sphere(p, 0, _Radius),
+                    (_SinTime[3] + 1) / 2
+                );              
+            }
+
 
             float3 normal (float3 p)
             {
@@ -123,12 +139,12 @@
                 return simpleLambert(n);
             }
 
-            fixed4 rayMarch(float3 position, float3 direction)
+            fixed4 rayMarch(float3 position, float3 direction, float3 center)
             {
                 for(int i=0; i<_Steps; i++){
-                    float distance = map(position);
+                    float distance = map(position, center);
                     if(distance < _MinDistance){
-                        return renderSurface(position);
+                        return renderSurface(position-center);
                     }
                     position += distance * direction;
                 }
@@ -142,7 +158,7 @@
                 float3 worldPosition = i.wPos;
                 float3 viewDirection = normalize(i.wPos - _WorldSpaceCameraPos);
 
-                fixed4 pixel = rayMarch(worldPosition, viewDirection);
+                fixed4 pixel = rayMarch(worldPosition, viewDirection, i.objectPos);
                 return pixel;
     
             }
